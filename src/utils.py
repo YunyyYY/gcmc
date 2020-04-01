@@ -9,12 +9,12 @@ from torch_geometric.utils import scatter_
 
 class Config(dict):
     def __init__(self, config):
-        self._conf = config
+        super().__init__()
+        self._config = config
  
-    def __getattr__(self, name):
-        if self._conf.get(name) is not None:
-            return self._conf[name]
-
+    def __getattr__(self, name):  # this function convert key to attributes
+        if self._config.get(name) is not None:
+            return self._config[name]
         return None
 
 
@@ -151,4 +151,3 @@ class AverageMeter:
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-        

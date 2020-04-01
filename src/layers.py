@@ -1,3 +1,6 @@
+"""
+Defines the two layers of the encoder
+"""
 import torch
 import torch.nn as nn
 from torch_geometric.nn.conv import MessagePassing
@@ -5,12 +8,9 @@ from torch_geometric.utils import scatter_
 from src.utils import stack, split_stack
 
 
-# First Layer of the Encoder (implemented by Pytorch Geometric)
-# Please the following repository for details.
-# https://github.com/rusty1s/pytorch_geometric
 class RGCLayer(MessagePassing):
     def __init__(self, config, weight_init):
-        super(RGCLayer, self).__init__()
+        super().__init__()  # in Python 3.x no need to use super(Class, self).__init__()
         self.in_c = config.num_nodes
         self.out_c = config.hidden_size[0]
         self.num_relations = config.num_relations
@@ -23,14 +23,14 @@ class RGCLayer(MessagePassing):
         self.relu = config.rgc_relu
         
         if config.accum == 'split_stack':
-            # each 100 dimention has each realtion node features
+            # each 100-dimension has each relation node features
             # user-item-weight-sharing
-            self.base_weight = nn.Parameter(torch.Tensor(
-                max(self.num_users, self.num_item), self.out_c))
+            self.base_weight = nn.Parameter(torch.Tensor(max(self.num_users, self.num_item), self.out_c))
             self.dropout = nn.Dropout(self.drop_prob)
         else:
             # ordinal basis matrices in_c * out_c = 2625 * 500
-            ord_basis = [nn.Parameter(torch.Tensor(1, in_c * out_c)) for r in range(self.num_relations)]
+            ord_basis = [nn.Parameter(torch.Tensor(1, self.in_c * self.out_c))
+                         for r in range(self.num_relations)]
             self.ord_basis = nn.ParameterList(ord_basis)
         self.relu = nn.ReLU()
 
@@ -41,7 +41,6 @@ class RGCLayer(MessagePassing):
 
         self.reset_parameters(weight_init)
 
-
     def reset_parameters(self, weight_init):
         if self.accum == 'split_stack':
             weight_init(self.base_weight, self.in_c, self.out_c)
@@ -49,24 +48,23 @@ class RGCLayer(MessagePassing):
             for basis in self.ord_basis:
                 weight_init(basis, self.in_c, self.out_c)
 
-
     def forward(self, x, edge_index, edge_type, edge_norm=None):
-        return self.propagate(self.accum, edge_index, x=x, edge_type=edge_type, edge_norm=edge_norm)
+        return self._propagate(self.accum, edge_index, x=x, edge_type=edge_type, edge_norm=edge_norm)
 
-    def propagate(self, aggr, edge_index, **kwargs):
-        r"""The initial call to start propagating messages.
-        Takes in an aggregation scheme (:obj:`"add"`, :obj:`"mean"` or
-        :obj:`"max"`), the edge indices, and all additional data which is
-        needed to construct messages and to update node embeddings."""
-
-        assert aggr in ['split_stack', 'stack', 'add', 'mean', 'max']
+    def _propagate(self, aggr, edge_index, **kwargs):
+        """
+        The initial call to start propagating messages.
+        Takes in an aggregation scheme (:obj:`"add"`, :obj:`"mean"` or :obj:`"max"`),
+        the edge indices, and all additional data which is needed
+        to construct messages and to update node embeddings.
+        """
+        assert aggr in ['split_stack', 'stack', 'add', 'mean', 'max']  # ensure aggr valid
         kwargs['edge_index'] = edge_index
 
         size = None
         message_args = []
-        for arg in self.message_args:
+        for arg in self.__msg_params__:
             if arg[-2:] == '_i':
-                # tmp is x
                 tmp = kwargs[arg[:-2]]
                 size = tmp.size(0)
                 message_args.append(tmp[edge_index[0]])
@@ -77,8 +75,6 @@ class RGCLayer(MessagePassing):
             else:
                 message_args.append(kwargs[arg])
 
-        update_args = [kwargs[arg] for arg in self.update_args]
-
         out = self.message(*message_args)
         if aggr == 'split_stack':
             out = split_stack(out, edge_index[0], kwargs['edge_type'], dim_size=size)
@@ -86,10 +82,9 @@ class RGCLayer(MessagePassing):
             out = stack(out, edge_index[0], kwargs['edge_type'], dim_size=size)
         else:
             out = scatter_(aggr, out, edge_index[0], dim_size=size)
-        out = self.update(out, *update_args)
+        out = self.update(out)
 
         return out
-
 
     def message(self, x_j, edge_type, edge_norm):
         # create weight using ordinal weight sharing
@@ -144,7 +139,6 @@ class RGCLayer(MessagePassing):
         weight = weight * drop_mask
 
         return weight
-
 
 
 # Second Layer of the Encoder

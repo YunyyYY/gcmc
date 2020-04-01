@@ -21,6 +21,6 @@ root: data/ml-100k
 dataset_name: ml-100k
 
 # comet-ml (optional)
-workspace: 
-project_name: 
-api_key: 
+workspace: yunyyyy
+project_name: gcmc
+api_key: QE9qlf24VEgykjLWwOulSeb8r

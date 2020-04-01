@@ -5,7 +5,7 @@ import yaml
 from src.dataset import MCDataset
 from src.model import GAE
 from src.train import Trainer
-from src.utils import calc_rmse, ster_uniform, random_init, init_xavier, init_uniform, Config
+from src.utils import calc_rmse, random_init, init_xavier, Config
 
 
 def main(config, comet=False):
@@ -22,10 +22,9 @@ def main(config, comet=False):
     dataset = MCDataset(config.root, config.dataset_name)
     data = dataset[0].to(device)
 
-    # add some params to config
     config.num_nodes = dataset.num_nodes
-    config.num_relations = dataset.num_relations
     config.num_users = int(data.num_users)
+    config.num_relations = dataset.num_relations  # defines number of edge types
 
     # set and init model
     model = GAE(config, random_init).to(device)
@@ -45,4 +44,3 @@ if __name__ == '__main__':
     with open('config.yml') as f:
         config = yaml.safe_load(f)
     main(config)
-    # main(config, comet=True)

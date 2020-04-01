@@ -28,17 +28,37 @@ Please see [Pytorch Geometirc document](https://rusty1s.github.io/pytorch_geomet
 ```
 python main.py
 ```
-- Configuration:  
-The settings for train and test are in `config.yml`.  
+- Configuration: 
 
-- Dataset:  
-Default training dataset is MovieLens-100k which will be automatically downloaded in `data/` when running `main.py`.
+  The settings for train and test are in `config.yml`.  
+
+- Dataset: 
+
+  Default training dataset is MovieLens-100k which will be automatically downloaded in `data/` when running `main.py`.
+
 
 
 ## Results
+
 Note that the score of this repo donesn't reach to the original one.
 
 | | Test RMSE |
 |:--|--:|
 | Ours | 0.968 |
 | Original | 0.910 |
+
+
+
+
+
+
+
+
+
+```
+$ pip install torch-scatter==latest+cu100 -f https://pytorch-geometric.com/whl/torch-1.4.0.html
+$ pip install torch-sparse==latest+cu100 -f https://pytorch-geometric.com/whl/torch-1.4.0.html
+$ pip install torch-cluster==latest+cu100 -f https://pytorch-geometric.com/whl/torch-1.4.0.html
+$ pip install torch-spline-conv==latest+cu100 -f https://pytorch-geometric.com/whl/torch-1.4.0.html
+$ python setup.py install or pip install torch-geometric
+```

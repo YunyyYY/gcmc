@@ -3,21 +3,17 @@ import copy
 import glob
 import shutil
 import pandas as pd
-import numpy as np
 
 import torch
-from torch_scatter import scatter_add
 from torch_geometric.data import InMemoryDataset, Data, download_url, extract_zip
-from torch_geometric.utils import one_hot
 
 
-class MCDataset(InMemoryDataset):
+class MCDataset(InMemoryDataset):  # creating graph dataset which fit completely into memory
     def __init__(self, root, name, transform=None, pre_transform=None):
         self.name = name
-        super(MCDataset, self).__init__(root, transform, pre_transform)
-        # processed_path[0]は処理された後のデータで，process methodで定義される
+        super().__init__(root, transform, pre_transform)
         self.data, self.slices = torch.load(self.processed_paths[0])
-        
+
     @property
     def num_relations(self):
         return self.data.edge_type.max().item() + 1
@@ -34,7 +30,6 @@ class MCDataset(InMemoryDataset):
     def processed_file_names(self):
         return 'data.pt'
 
-    
     def download(self):
         if self.name == 'ml-100k':
             url = 'http://files.grouplens.org/datasets/movielens/ml-100k.zip'
@@ -45,7 +40,6 @@ class MCDataset(InMemoryDataset):
             shutil.move(file, self.raw_dir)
         os.rmdir(os.path.join(self.raw_dir, self.name))
 
-        
     def process(self):
         train_csv, test_csv = self.raw_paths
         train_df, train_nums = self.create_df(train_csv)
@@ -76,7 +70,6 @@ class MCDataset(InMemoryDataset):
 
         edge_norm = (1 / edge_norm.to(torch.float))
 
-
         data = Data(x=x, edge_index=edge_index)
         data.edge_type = edge_type
         data.edge_norm = edge_norm
@@ -90,7 +83,6 @@ class MCDataset(InMemoryDataset):
         data, slices = self.collate([data])
         torch.save((data, slices), self.processed_paths[0])
 
-    
     def create_df(self, csv_path):
         col_names = ['user_id', 'item_id', 'relation', 'ts']
         df = pd.read_csv(csv_path, sep='\t', names=col_names)
@@ -108,7 +100,6 @@ class MCDataset(InMemoryDataset):
 
         return df, nums
 
-
     def create_gt_idx(self, df, nums):
         df['idx'] = df['user_id'] * nums['item'] + df['item_id']
         idx = torch.tensor(df['idx'])
@@ -116,12 +107,10 @@ class MCDataset(InMemoryDataset):
 
         return idx, gt
 
-    
     def get(self, idx):
         data = torch.load(os.path.join(self.processed_dir, 'data.pt'))
         return data[0]
 
-        
     def __repr__(self):
         return '{}{}()'.format(self.name.upper(), self.__class__.__name__)
         
